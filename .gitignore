@@ -1,0 +1,11 @@
+build/
+cmake-build-*/
+.idea/
+.vscode/
+
+*.o
+*.out
+*.exe
+*.app
+robot_pga
+.DS_Store

@@ -71,16 +71,13 @@ inline Multivector applyRotor(const Multivector& r, const Multivector& p) {
     float c = r.s * r.s - r.e12 * r.e12;
     float s = 2 * r.s * r.e12;
 
-    // R * p * ~R для point: вращение матрицы
     result.e1 = c * p.e1 - s * p.e2;
     result.e2 = s * p.e1 + c * p.e2;
     result.e0 = p.e0;
 
     return result;
 }
-//штука выше рбаотает тока для ограниченного колва случаев, штука ниже лучше подходит для наших задач
 
-// Применить Motor (сдвиг + поворот) к точке: M * p * ~M
 inline Multivector applyMotor(const Multivector& m, const Multivector& p) {
     Multivector result;
 
@@ -98,4 +95,41 @@ inline Multivector applyMotor(const Multivector& m, const Multivector& p) {
     result.e0 = p.e0;
 
     return result;
+}
+inline Multivector operator+(const Multivector& a, const Multivector& b) {
+    Multivector r;
+    r.s   = a.s + b.s;
+    r.e1  = a.e1 + b.e1;
+    r.e2  = a.e2 + b.e2;
+    r.e0  = a.e0 + b.e0;
+    r.e12 = a.e12 + b.e12;
+    r.e01 = a.e01 + b.e01;
+    r.e20 = a.e20 + b.e20;
+    return r;
+}
+
+// Умножение мультивектора на обычное число (скаляр)
+inline Multivector operator*(const Multivector& m, float f) {
+    Multivector r;
+    r.s   = m.s * f;
+    r.e1  = m.e1 * f;
+    r.e2  = m.e2 * f;
+    r.e0  = m.e0 * f;
+    r.e12 = m.e12 * f;
+    r.e01 = m.e01 * f;
+    r.e20 = m.e20 * f;
+    return r;
+}
+inline Multivector normalizeMotor(const Multivector& m) {
+    float norm = std::sqrt(m.s * m.s + m.e12 * m.e12);
+    if (norm == 0.0f) return m;
+    return m * (1.0f / norm);
+}
+
+inline Multivector makeVelocity(float w, float vx, float vy) {
+    Multivector v;
+    v.e12 = w;
+    v.e01 = vx;
+    v.e20 = vy;
+    return v;
 }

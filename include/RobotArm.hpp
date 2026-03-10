@@ -92,6 +92,85 @@ public:
         return d;
     }
 
+    // === ФИЗИКА И СТОЛКНОВЕНИЯ ===
+    void updatePhysics(bool checkCollisions, float floorY = 400.0f) {
+        Multivector origin = makePoint(0.0f, 0.0f);
+        Multivector motorBase = makeTranslator(baseX, baseY);
+        Multivector m_link1 = motorBase * makeRotor(theta1);
+        Multivector m_link2 = m_link1 * makeTranslator(L1, 0.0f) * makeRotor(theta2);
+
+        Multivector com1 = applyMotor(m_link1 * makeTranslator(L1 * 0.5f, 0.0f), origin);
+        Multivector com2 = applyMotor(m_link2 * makeTranslator(L2 * 0.5f, 0.0f), origin);
+
+        float c1x, c1y, c2x, c2y;
+        getPoint(com1, c1x, c1y);
+        getPoint(com2, c2x, c2y);
+
+        // Базовая гравитация
+        float torque2 = (c2x - j1x) * GRAVITY;
+        float torque1 = (c1x - j0x) * GRAVITY + torque2;
+
+        // === РЕАКЦИЯ ОПОРЫ ===
+        if (checkCollisions) {
+            constexpr float RESTITUTION = 0.1f;
+            // 1. Проверяем ЛОКОТЬ (желтую точку)
+            if (j1y >= floorY) {
+                float vy1 = w1 * (j1x - j0x);
+                if (vy1 > 0.0f) {
+                    float r1 = j1x - j0x;
+                    float effMass = r1 * r1;
+                    if (effMass > 0.0001f) {
+                        float impulse = -(1.0f + RESTITUTION) * vy1 / effMass;
+                        w1 += impulse * r1;
+                    }
+                }
+                float penetration = j1y - floorY;
+                theta1 -= (penetration / std::abs(j1x - j0x + 0.001f)) * static_cast<float>(j1x >= j0x ? 1 : -1);
+                w1 *= 0.5f;
+            }
+
+            // 2. Проверяем КОНЕЦ РУКИ (зеленую точку)
+            if (j2y >= floorY) {
+                float r1 = j2x - j0x;
+                float r2 = j2x - j1x;
+                float vy2 = w1 * r1 + w2 * r2;
+
+                if (vy2 > 0.0f) {
+                    float effMass = (r1 * r1) + (r2 * r2);
+                    if (effMass > 0.0001f) {
+                        float impulse = -(1.0f + RESTITUTION) * vy2 / effMass;
+                        w1 += impulse * r1;
+                        w2 += impulse * r2;
+                    }
+                }
+                float penetration = j2y - floorY;
+                theta2 -= (penetration / std::abs(r2 + 0.001f)) * static_cast<float>(j2x >= j1x ? 1 : -1);
+                w2 *= 0.5f;
+                w1 *= 0.8f;
+            }
+        }
+
+        w2 = (w2 + torque2 * 0.01f) * 0.98f;
+        w1 = (w1 + torque1 * 0.01f) * 0.98f;
+
+        theta2 += w2;
+        theta1 += w1;
+        updateKinematics();
+    }
+
+    void grabWithMouse(float mouseX, float mouseY, bool checkCollisions, float floorY = 400.0f) {
+        if (checkCollisions && mouseY > floorY) mouseY = floorY;
+
+        float forceX = (mouseX - j2x) * 0.02f;
+        float forceY = (mouseY - j2y) * 0.02f;
+
+        float torquePull2 = (j2x - j1x) * forceY - (j2y - j1y) * forceX;
+        float torquePull1 = (j2x - j0x) * forceY - (j2y - j0y) * forceX;
+
+        w2 += torquePull2 * 0.01f;
+        w1 += torquePull1 * 0.01f;
+    }
+
     void draw(sf::RenderWindow& window) const {
         sf::VertexArray link1(sf::PrimitiveType::Lines, 2);
         link1[0].position = sf::Vector2f(j0x, j0y); link1[1].position = sf::Vector2f(j1x, j1y);

@@ -10,6 +10,28 @@
 
      Multivector() : s(0), e1(0), e2(0), e0(0), e12(0), e01(0), e20(0) {}
  };
+inline Multivector operator*(const Multivector& a, const Multivector& b) {
+    Multivector r;
+
+    // 1. Скалярная часть и вращение (работает как умножение комплексных чисел)
+    r.s   = a.s * b.s - a.e12 * b.e12;
+    r.e12 = a.s * b.e12 + a.e12 * b.s;
+
+    // 2. Сдвиги
+    r.e01 = a.s * b.e01 + a.e01 * b.s - a.e12 * b.e20 + a.e20 * b.e12;
+    r.e20 = a.s * b.e20 + a.e20 * b.s + a.e12 * b.e01 - a.e01 * b.e12;
+
+    return r;
+}
+
+// Reverse: ~(a + b) = a - b для bivector
+inline Multivector reverse(const Multivector& m) {
+    Multivector r = m;
+    r.e12 = -r.e12;
+    r.e01 = -r.e01;
+    r.e20 = -r.e20;
+    return r;
+}
 
 inline Multivector makeRotor(float theta) {
     Multivector r;
@@ -42,4 +64,38 @@ inline void getPoint(const Multivector& p, float& x, float& y) {
     } else {
         x = p.e1; y = p.e2;
     }
+}
+inline Multivector applyRotor(const Multivector& r, const Multivector& p) {
+    [[maybe_unused]] Multivector r_rev = reverse(r);
+    Multivector result;
+    float c = r.s * r.s - r.e12 * r.e12;
+    float s = 2 * r.s * r.e12;
+
+    // R * p * ~R для point: вращение матрицы
+    result.e1 = c * p.e1 - s * p.e2;
+    result.e2 = s * p.e1 + c * p.e2;
+    result.e0 = p.e0;
+
+    return result;
+}
+//штука выше рбаотает тока для ограниченного колва случаев, штука ниже лучше подходит для наших задач
+
+// Применить Motor (сдвиг + поворот) к точке: M * p * ~M
+inline Multivector applyMotor(const Multivector& m, const Multivector& p) {
+    Multivector result;
+
+    float c = m.s * m.s - m.e12 * m.e12;
+    float s = 2.0f * m.s * m.e12;
+
+    float rx = c * p.e1 - s * p.e2;
+    float ry = s * p.e1 + c * p.e2;
+
+    float tx = 2.0f * (m.s * m.e01 - m.e12 * m.e20);
+    float ty = 2.0f * (m.s * m.e20 + m.e12 * m.e01);
+
+    result.e1 = rx + tx * p.e0;
+    result.e2 = ry + ty * p.e0;
+    result.e0 = p.e0;
+
+    return result;
 }

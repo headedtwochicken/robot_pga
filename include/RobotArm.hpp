@@ -49,10 +49,47 @@ public:
         updateKinematics();
     }
 
+    void clampBaseY(float floorY) {
+        if (baseY > floorY) baseY = floorY;
+        updateKinematics();
+    }
+
     void addAngles(float dTheta1, float dTheta2) {
         theta1 += dTheta1;
         theta2 += dTheta2;
         updateKinematics();
+    }
+
+    [[nodiscard]] std::optional<float> solveIK(float targetX, float targetY) {
+        float mx = targetX - baseX;
+        float my = targetY - baseY;
+        float d2 = mx * mx + my * my;
+        float d = std::sqrt(d2);
+
+        if (d >= L1 + L2 - 1.0f) {
+            theta1 = std::atan2(my, mx);
+            theta2 = 0.0f;
+            updateKinematics();
+            return std::nullopt;
+        }
+
+        if (d <= std::abs(L1 - L2) + 1.0f) {
+            theta1 = std::atan2(my, mx);
+            theta2 = 3.14159265f;
+            updateKinematics();
+            return std::nullopt;
+        }
+
+        float cosTheta2 = (d2 - L1 * L1 - L2 * L2) / (2 * L1 * L2);
+        cosTheta2 = std::max(-1.0f, std::min(1.0f, cosTheta2));
+        theta2 = std::acos(cosTheta2);
+
+        float alpha = std::atan2(my, mx);
+        float beta = std::atan2(L2 * std::sin(theta2), L1 + L2 * std::cos(theta2));
+        theta1 = alpha - beta;
+
+        updateKinematics();
+        return d;
     }
 
     void draw(sf::RenderWindow& window) const {

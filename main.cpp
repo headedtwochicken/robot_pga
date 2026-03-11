@@ -1,5 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include <string>
+#include "include/RobotArm.hpp"
+
+enum AppMode { FK_MODE, IK_MODE, PHYSICS_MODE, COLLISION_MODE };
 
 // === КЛАСС ДЛЯ КНОПОК ===
 class Button {
@@ -39,6 +42,15 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({1120, 700}), "PGA Robot Engine - Pro UI");
     window.setFramerateLimit(60);
 
+    RobotArm mainArm(400.0f, 300.0f, 120.0f, 100.0f);
+    AppMode currentMode = FK_MODE;
+
+    sf::Font dummyFont;
+
+    float panelX = 860.0f;
+    Button btnFK(panelX + 20, 100, 200, 50, "1: FK Mode", dummyFont);
+    Button btnIK(panelX + 20, 170, 200, 50, "2: IK Mode", dummyFont);
+
     while (window.isOpen()) {
         bool mouseClicked = false;
         while (auto event = window.pollEvent()) {
@@ -50,7 +62,23 @@ int main() {
             }
         }
 
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
+        if (btnFK.isClicked(mousePos, mouseClicked)) { currentMode = FK_MODE; mainArm.resetVelocities(); }
+        if (btnIK.isClicked(mousePos, mouseClicked)) { currentMode = IK_MODE; mainArm.resetVelocities(); }
+
         window.clear(sf::Color(20, 20, 25));
+
+        mainArm.draw(window);
+
+        sf::RectangleShape rightPanel(sf::Vector2f(1120.0f - panelX, 700.0f));
+        rightPanel.setPosition({panelX, 0.0f});
+        rightPanel.setFillColor(sf::Color(30, 30, 40));
+        window.draw(rightPanel);
+
+        btnFK.draw(window);
+        btnIK.draw(window);
+
         window.display();
     }
     return 0;

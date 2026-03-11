@@ -210,7 +210,169 @@ public:
         throw std::runtime_error(std::string("PingPongGame initialization failed: ") + ex.what());
     }
 
-    void update(sf::RenderWindow& window) override {}
+    void update(sf::RenderWindow& window) override {
+        const float dt = clock.restart().asSeconds();
+        const float dt60 = std::clamp(dt * 60.0f, 0.35f, 2.0f);
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Q)) {
+            racketTilt -= 0.09f * dt60;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::E)) {
+            racketTilt += 0.09f * dt60;
+        }
+
+        const bool rNow = sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::R);
+        if (rNow && !prevR) {
+            restartNow();
+        }
+        prevR = rNow;
+
+        const bool spaceNow = sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space);
+        if (std::holds_alternative<WaitingStartState>(screen) && spaceNow && !prevSpace) {
+            startRound();
+        }
+        prevSpace = spaceNow;
+
+        const bool mouseLeftNow = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+        const sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        const sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
+        if (restartButton) {
+            restartButton->setHovered(restartButton->contains(mousePosF));
+
+            if (mouseLeftNow && !prevMouseLeft && restartButton->contains(mousePosF)) {
+                restartButton->setPressed(true);
+            }
+
+            if (!mouseLeftNow && prevMouseLeft) {
+                if (restartButton->contains(mousePosF)) {
+                    restartNow();
+                }
+                restartButton->setPressed(false);
+            }
+        }
+        prevMouseLeft = mouseLeftNow;
+
+        paddleHitCooldown = std::max(0.0f, paddleHitCooldown - dt60);
+        racketTilt = std::clamp(racketTilt, -0.68f, 0.68f);
+
+        const float desiredBase = std::clamp(static_cast<float>(mousePos.x), 100.0f, PLAY_W - 100.0f);
+        baseX += (desiredBase - baseX) * 0.24f * std::min(dt60, 1.0f);
+
+        const float targetX = std::clamp(static_cast<float>(mousePos.x), WALL_PAD + 32.0f, PLAY_W - WALL_PAD - 32.0f);
+        const float targetY = std::clamp(static_cast<float>(mousePos.y), TOP_PAD + 30.0f, BASE_Y - 50.0f);
+
+        const bool elbowUp = targetX >= baseX;
+        if (!solveIJOlya(targetX - baseX, targetY - BASE_Y, L1, L2, theta1, theta2, elbowUp)) {
+            const float clampedX = std::clamp(targetX - baseX, -(L1 + L2 - 10.0f), L1 + L2 - 10.0f);
+            const float clampedY = std::clamp(targetY - BASE_Y, -(L1 + L2 - 10.0f), 0.0f);
+            theta1 = std::atan2(clampedY, clampedX);
+            theta2 = 0.0f;
+        }
+
+        const Multivector origin = makePoint(0.0f, 0.0f);
+        const Multivector mBase = makeTranslator(baseX, BASE_Y);
+        const Multivector mJoint1 = mBase * makeRotor(theta1);
+        const Multivector mJoint2 = mJoint1 * makeTranslator(L1, 0.0f) * makeRotor(theta2);
+        const Multivector mEnd = mJoint2 * makeTranslator(L2, 0.0f);
+
+        const PongVec2 endPoint = pointFromMultivector(applyMotor(mEnd, origin));
+        const Multivector racketMotor = makeTranslator(endPoint.x, endPoint.y) * makeRotor(racketTilt);
+
+        const PongVec2 racketA = pointFromMultivector(applyMotor(racketMotor, makePoint(-RACKET_HALF, 0.0f)));
+        const PongVec2 racketB = pointFromMultivector(applyMotor(racketMotor, makePoint( RACKET_HALF, 0.0f)));
+        const PongVec2 racketCenter = (racketA + racketB) * 0.5f;
+
+        if (!racketCenterPrev.has_value()) {
+            racketCenterPrev = racketCenter;
+        }
+        const PongVec2 racketVelocity = (racketCenter - *racketCenterPrev) / std::max(dt60, 0.001f);
+        racketCenterPrev = racketCenter;
+
+        if (std::holds_alternative<PlayingState>(screen)) {
+            const int substeps = std::clamp(static_cast<int>(std::ceil(length(ball->vel) * dt60 / 2.5f)), 2, 10);
+            const float subDt = dt60 / static_cast<float>(substeps);
+
+            for (int i = 0; i < substeps && std::holds_alternative<PlayingState>(screen); ++i) {
+                ball->step(subDt);
+                PongVec2 v = ball->vel;
+
+                if (ball->pos.x - ball->radius < WALL_PAD) {
+                    ball->pos.x = WALL_PAD + ball->radius;
+                    v.x = std::abs(v.x);
+                }
+                if (ball->pos.x + ball->radius > PLAY_W - WALL_PAD) {
+                    ball->pos.x = PLAY_W - WALL_PAD - ball->radius;
+                    v.x = -std::abs(v.x);
+                }
+                if (ball->pos.y - ball->radius < TOP_PAD) {
+                    ball->pos.y = TOP_PAD + ball->radius;
+                    v.y = std::abs(v.y);
+                }
+                ball->vel = v;
+
+                const PongVec2 closest = closestPointOnSegment(racketA, racketB, ball->pos);
+                const PongVec2 delta = ball->pos - closest;
+                const float d2 = lengthSq(delta);
+                const bool downward = v.y > 0.0f;
+                const bool fromAbove = ball->prevPos.y <= std::max(racketA.y, racketB.y) + COLLISION_RADIUS + 4.0f;
+
+                if (downward && fromAbove && d2 <= COLLISION_RADIUS * COLLISION_RADIUS && paddleHitCooldown <= 0.0f) {
+                    PongVec2 tangent = normalize(racketB - racketA);
+                    if (lengthSq(tangent) < 1e-6f) {
+                        tangent = {1.0f, 0.0f};
+                    }
+
+                    PongVec2 upNormal = {-tangent.y, tangent.x};
+                    if (upNormal.y > 0.0f) {
+                        upNormal = upNormal * -1.0f;
+                    }
+                    if (dot(v, upNormal) > -0.02f) {
+                        upNormal = upNormal * -1.0f;
+                    }
+                    if (upNormal.y > -0.08f) {
+                        upNormal.y = -0.08f;
+                        upNormal = normalize(upNormal);
+                    }
+
+                    const float hitOffset = std::clamp(dot(ball->pos - racketCenter, tangent) / RACKET_HALF, -1.0f, 1.0f);
+                    const float tangentBoost = hitOffset * 1.15f + racketVelocity.x * 0.07f + racketTilt * 0.65f;
+
+                    PongVec2 outDir = normalize(upNormal * 1.25f + tangent * tangentBoost);
+                    if (outDir.y > -0.25f) {
+                        outDir.y = -0.25f;
+                        outDir = normalize(outDir);
+                    }
+
+                    const float speed = std::clamp(length(v) + 0.24f, 7.2f, 12.8f);
+                    PongVec2 bounced = outDir * speed;
+                    bounced.x = clampAbsMin(bounced.x, 1.55f);
+                    bounced.y = -std::max(std::abs(bounced.y), 3.3f);
+
+                    const float dist = std::sqrt(std::max(d2, 1e-6f));
+                    ball->pos = closest + upNormal * (COLLISION_RADIUS + 1.8f + std::max(0.0f, COLLISION_RADIUS - dist));
+                    ball->vel = bounced;
+                    ball->visualSpin = std::clamp(hitOffset * 0.28f + racketTilt * 0.55f, -0.45f, 0.45f);
+                    paddleHitCooldown = 6.0f;
+                    ++score;
+                }
+
+                if (length(ball->vel) < 6.8f) {
+                    ball->vel = normalize(ball->vel) * 6.8f;
+                }
+                ball->vel.x = clampAbsMin(ball->vel.x, 1.25f);
+                if (std::abs(ball->vel.y) < 2.6f) {
+                    ball->vel.y = (ball->vel.y < 0.0f ? -1.0f : 1.0f) * 2.6f;
+                }
+
+                if (ball->pos.y - ball->radius > WINDOW_H) {
+                    screen = GameOverState{score};
+                }
+
+                ball->syncMotor();
+            }
+        }
+    }
 
     void draw(sf::RenderWindow& window) override {}
 };

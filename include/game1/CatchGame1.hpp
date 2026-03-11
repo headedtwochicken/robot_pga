@@ -18,7 +18,11 @@ private:
     int missed;
     const int MAX_MISSED = 5;
     bool gameOver;
-
+    sf::Font font;
+    sf::Text scoreText, missedText, gameOverText, restartText, instructionText;
+    bool fontLoaded;
+    std::mt19937 rng;
+    std::uniform_real_distribution<float> xPosDist;
 
 
 public:
@@ -27,4 +31,24 @@ public:
     spawnTimer(0.0f),
     score(0),
     missed(0),
-    gameOver(false){}
+    gameOver(false),
+    scoreText(font),
+    missedText(font),
+    gameOverText(font),
+    restartText(font),
+    instructionText(font),
+    fontLoaded(false),
+    rng(std::random_device{}()),
+    xPosDist(50.0f, 850.0f)
+    {
+        try {
+            if (!font.openFromFile("/System/Library/Fonts/Helvetica.ttc") &&
+                !font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
+                throw std::runtime_error("Failed to load fonts!");
+                }
+            fontLoaded = true;
+        } catch (const std::exception& e) {
+            printf("EXCEPTION: %s\n", e.what());
+            fontLoaded = false;
+        }
+

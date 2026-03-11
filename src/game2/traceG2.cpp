@@ -46,6 +46,14 @@ void TraceGame::randomShape() {
 }
 
 void TraceGame::update(sf::RenderWindow& window) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::R)) {
+        if (!rPressed) { printRes(); rPressed = true; }
+    } else rPressed = false;
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::S)) {
+        if (!sPressed) { randomShape(); sPressed = true; }
+    } else sPressed = false;
+
     if (finished) return;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left)) {
@@ -56,6 +64,7 @@ void TraceGame::update(sf::RenderWindow& window) {
     }
 
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
     auto targetX = static_cast<float>(mousePos.x);
     if (targetX > 880) targetX = 880;
 
@@ -72,8 +81,87 @@ void TraceGame::update(sf::RenderWindow& window) {
     }
 }
 
-void TraceGame::printRes() {}
-float TraceGame::calculateAccuracy() const { return 0.0f; }
+void TraceGame::printRes() {
+    if (!finished && !userTrace.empty()){
+        finished = true;
+        score = calculateAccuracy();
+        resText.setString("RESULT:\n\nAccuracy:\n" + std::to_string(static_cast<int>(score)) + "%\n\nPress S for\n new shape");
+    }
+}
+
+float TraceGame::calculateAccuracy() const {
+    if (!currentShape || userTrace.empty()) return 0;
+
+    auto shapePts = currentShape->getPoints();
+    std::vector<sf::Vector2f> denseShape;
+
+    for (size_t i = 0; i < shapePts.size() - 1; i++) {
+        sf::Vector2f p1 = shapePts[i];
+        sf::Vector2f p2 = shapePts[i+1];
+        float dx = p2.x - p1.x;
+        float dy = p2.y - p1.y;
+        float segLen = std::sqrt(dx * dx + dy * dy);
+        int steps = std::max(1, static_cast<int>(segLen / 5.0f));
+        for (int j = 0; j < steps; j++) {
+            auto t = static_cast<float>(j) / static_cast<float>(steps);
+            denseShape.emplace_back(p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y));
+        }
+    }
+    denseShape.push_back(shapePts.back());
+
+    float totalPrecisionDist = 0;
+    for (auto& p : userTrace) {
+        float best = 999999;
+        for (auto& s : denseShape) {
+            float dx = p.x - s.x;
+            float dy = p.y - s.y;
+            float d = std::sqrt(dx * dx + dy * dy);
+            if (d < best) best = d;
+        }
+        totalPrecisionDist += best;
+    }
+    float avgPrecision = totalPrecisionDist / static_cast<float>(userTrace.size());
+
+    float totalCoverageDist = 0;
+    for (auto& s : denseShape) {
+        float best = 999999;
+        for (auto& p : userTrace) {
+            float dx = s.x - p.x;
+            float dy = s.y - p.y;
+            float d = std::sqrt(dx * dx + dy * dy);
+            if (d < best) best = d;
+        }
+        totalCoverageDist += best;
+    }
+    float avgCoverage = totalCoverageDist / static_cast<float>(denseShape.size());
+
+    float finalScoreDist = (avgPrecision + avgCoverage) / 2.0f;
+    float maxDist = 40.0f;
+
+    float accuracy = 100.0f * (1.0f - (finalScoreDist / maxDist));
+
+    float traceLength = 0;
+    for (size_t i = 1; i < userTrace.size(); i++) {
+        float dx = userTrace[i].x - userTrace[i-1].x;
+        float dy = userTrace[i].y - userTrace[i-1].y;
+        traceLength += std::sqrt(dx*dx + dy*dy);
+    }
+
+    float idealLength = 0;
+    for (size_t i = 1; i < denseShape.size(); i++) {
+        float dx = denseShape[i].x - denseShape[i-1].x;
+        float dy = denseShape[i].y - denseShape[i-1].y;
+        idealLength += std::sqrt(dx*dx + dy*dy);
+    }
+
+    float inkRatio = traceLength / (idealLength + 0.001f);
+
+    if (inkRatio > 1.5f) { accuracy -= (inkRatio - 1.5f) * 30.0f; }
+    if (accuracy < 0) accuracy = 0;
+    if (accuracy > 100) accuracy = 100;
+
+    return accuracy;
+}
 
 void TraceGame::draw(sf::RenderWindow& window) {
     window.clear(sf::Color(20, 20, 25));
@@ -91,6 +179,7 @@ void TraceGame::draw(sf::RenderWindow& window) {
     arm.draw(window);
     window.draw(targetPoint);
 
+    // === ПРАВАЯ ПАНЕЛЬ ИНТЕРФЕЙСА ===
     sf::RectangleShape rightPanel(sf::Vector2f(220.0f, 700.0f));
     rightPanel.setPosition({900.0f, 0.0f});
     rightPanel.setFillColor(sf::Color(30, 30, 40));

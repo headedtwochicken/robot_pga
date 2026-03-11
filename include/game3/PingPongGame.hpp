@@ -374,5 +374,43 @@ public:
         }
     }
 
-    void draw(sf::RenderWindow& window) override {}
+    void draw(sf::RenderWindow& window) override {
+        const Multivector origin = makePoint(0.0f, 0.0f);
+        const Multivector mBase = makeTranslator(baseX, BASE_Y);
+        const Multivector mJoint1 = mBase * makeRotor(theta1);
+        const Multivector mJoint2 = mJoint1 * makeTranslator(L1, 0.0f) * makeRotor(theta2);
+        const Multivector mEnd = mJoint2 * makeTranslator(L2, 0.0f);
+
+        const PongVec2 base = pointFromMultivector(applyMotor(mBase, origin));
+        const PongVec2 joint = pointFromMultivector(applyMotor(mJoint1 * makeTranslator(L1, 0.0f), origin));
+        const PongVec2 end = pointFromMultivector(applyMotor(mEnd, origin));
+
+        PongRenderSnapshot snapshot;
+        snapshot.playW = PLAY_W;
+        snapshot.hudW = HUD_W;
+        snapshot.windowH = static_cast<float>(WINDOW_H);
+        snapshot.wallPad = WALL_PAD;
+        snapshot.topPad = TOP_PAD;
+        snapshot.baseY = BASE_Y;
+        snapshot.racketHalf = RACKET_HALF;
+        snapshot.racketThickness = RACKET_THICKNESS;
+        snapshot.base = base;
+        snapshot.joint = joint;
+        snapshot.end = end;
+        snapshot.racketTilt = racketTilt;
+        snapshot.ballPos = ball->pos;
+        snapshot.ballRadius = ball->radius;
+        snapshot.ballVisualAngle = ball->visualAngle;
+        snapshot.score = score;
+        snapshot.screen = screen;
+        snapshot.font = bitmapFont;
+        snapshot.restartButton = restartButton.get();
+        snapshot.hudWidgets = &hudWidgets;
+
+        PingPongGameView::draw(window, snapshot);
+    }
+
+    [[nodiscard]] GameResult getResult() const override {
+        return score;
+    }
 };

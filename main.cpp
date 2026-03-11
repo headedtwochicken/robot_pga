@@ -45,11 +45,28 @@ int main() {
     RobotArm mainArm(400.0f, 300.0f, 120.0f, 100.0f);
     AppMode currentMode = FK_MODE;
 
-    sf::Font dummyFont;
+    sf::Font font;
+    bool fontLoaded = false;
+    try {
+        if (!font.openFromFile("/System/Library/Fonts/Helvetica.ttc") &&
+            !font.openFromFile("C:/Windows/Fonts/Arial.ttf")) {
+            throw std::runtime_error("Failed to load fonts!");
+            }
+        fontLoaded = true;
+    } catch (const std::exception& e) {
+        printf("EXCEPTION: %s\n", e.what());
+    }
+
+    sf::Text hintText(font);
+    if (fontLoaded) {
+        hintText.setCharacterSize(16);
+        hintText.setFillColor(sf::Color(200, 255, 200));
+        hintText.setPosition({10.0f, 10.0f});
+    }
 
     float panelX = 860.0f;
-    Button btnFK(panelX + 20, 100, 200, 50, "1: FK Mode", dummyFont);
-    Button btnIK(panelX + 20, 170, 200, 50, "2: IK Mode", dummyFont);
+    Button btnFK(panelX + 20, 100, 200, 50, "1: FK Mode", font);
+    Button btnIK(panelX + 20, 170, 200, 50, "2: IK Mode", font);
 
     while (window.isOpen()) {
         bool mouseClicked = false;

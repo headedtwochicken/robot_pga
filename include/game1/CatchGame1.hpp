@@ -51,4 +51,29 @@ public:
             printf("EXCEPTION: %s\n", e.what());
             fontLoaded = false;
         }
+        if (fontLoaded) {
+            scoreText.setCharacterSize(22);
+            scoreText.setFillColor(sf::Color::White);
+            scoreText.setPosition({920.0f, 80.0f});
+
+            missedText.setCharacterSize(22);
+            missedText.setFillColor(sf::Color(255, 100, 100));
+            missedText.setPosition({920.0f, 120.0f});
+
+            instructionText.setCharacterSize(16);
+            instructionText.setFillColor(sf::Color(200, 200, 200));
+            instructionText.setPosition({920.0f, 200.0f});
+            instructionText.setString("CONTROLS:\n\nMouse - Move Arm\nA/D - Move Base\n\nCatch the falling\n objects!");
+
+            gameOverText.setCharacterSize(48);
+            gameOverText.setFillColor(sf::Color::Red);
+            gameOverText.setPosition({300.0f, 250.0f});
+            gameOverText.setString("GAME OVER");
+
+            restartText.setCharacterSize(24);
+            restartText.setFillColor(sf::Color::White);
+            restartText.setPosition({350.0f, 320.0f});
+            restartText.setString("Press R to restart");
+        }
+    }
 

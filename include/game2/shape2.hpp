@@ -76,3 +76,26 @@ public:
         window.draw(r);
     }
 };
+class TriangleShapeTrace : public Shape {
+public:
+    [[nodiscard]] std::vector<sf::Vector2f> getPoints()const  override {
+        return {{400,200},{550,400},{250,400},{400,200}};
+    }
+
+    void draw(sf::RenderWindow& window) const override {
+
+        sf::ConvexShape t;
+
+        t.setPointCount(3);
+
+        t.setPoint(0,{400,200});
+        t.setPoint(1,{550,400});
+        t.setPoint(2,{250,400});
+
+        t.setFillColor(sf::Color::Transparent);
+        t.setOutlineColor(sf::Color(120,120,120));
+        t.setOutlineThickness(2);
+
+        window.draw(t);
+    }
+};

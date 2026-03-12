@@ -131,5 +131,40 @@ public:
             if (arm) arm->updatePhysics(false);
         }
     }
+    void draw(sf::RenderWindow& window) override {
+        sf::RectangleShape sky(sf::Vector2f(900, 400));
+        sky.setFillColor(sf::Color(70, 70, 100));
+        window.draw(sky);
 
+        sf::RectangleShape floor(sf::Vector2f(900, 300));
+        floor.setFillColor(sf::Color(100, 100, 120));
+        floor.setPosition({0, 400});
+        window.draw(floor);
+
+        for (const auto& obj : objects) obj.draw(window);
+        if (arm) arm->draw(window);
+        catcher.draw(window, arm->getEndX(), arm->getEndY());
+
+        sf::RectangleShape rightPanel(sf::Vector2f(220.0f, 700.0f));
+        rightPanel.setPosition({900.0f, 0.0f});
+        rightPanel.setFillColor(sf::Color(30, 30, 40));
+        window.draw(rightPanel);
+
+        sf::RectangleShape divider(sf::Vector2f(2.0f, 700.0f));
+        divider.setPosition({900.0f, 0.0f});
+        divider.setFillColor(sf::Color(70, 70, 90));
+        window.draw(divider);
+
+        if (fontLoaded) {
+            window.draw(scoreText);
+            window.draw(missedText);
+            window.draw(instructionText);
+            if (gameOver) {
+                window.draw(gameOverText);
+                window.draw(restartText);
+            }
+        }
+    }
+    GameResult getResult() const override { return score; }
+};
 

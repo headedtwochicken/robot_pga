@@ -90,7 +90,7 @@ public:
                 if (arm) arm->moveBase(-6.0f);//метод из RobotArm, он здвигает основу руки на указанное расстояние
             }
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right)) {
-                if (arm) arm->moveBase(6.0f);/тож самое про право
+                if (arm) arm->moveBase(6.0f);//тож самое про право
             }
 
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);

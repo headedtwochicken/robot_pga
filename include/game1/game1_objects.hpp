@@ -96,7 +96,7 @@ public:
         window.draw(claws);
     }
 
-    loat getRadius() const { return radius; }
+    float getRadius() const { return radius; }
 };
 
 

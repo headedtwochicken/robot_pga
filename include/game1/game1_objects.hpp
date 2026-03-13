@@ -18,6 +18,7 @@ public:
     [[nodiscard]] sf::Vector2f getPosition() const { return position; }
     void setColor(const sf::Color& c) { color = c; }
 };
+
 class FallingObject : public GameObject {
 private:
     float radius;
@@ -64,6 +65,7 @@ public:
     [[nodiscard]] bool isOffScreen(float screenHeight) const { return position.y - radius > screenHeight; }
     [[nodiscard]] float getRadius() const { return radius; }
 };
+
 class Catcher {
 private:
     float radius;
@@ -97,33 +99,6 @@ public:
     [[nodiscard]] float getRadius() const { return radius; }
 };
 
-inline std::optional<std::pair<float, float>> solveIK(
-    float targetX, float targetY,
-    float baseX, float baseY,
-    float L1, float L2) {
-    float mx = targetX - baseX;
-    float my = targetY - baseY;
 
-    float d2 = mx * mx + my * my;
-    float d = std::sqrt(d2);
 
-    if (d >= L1 + L2 - 10.0f) {
-        float theta1 = std::atan2(my, mx);
-        return std::make_pair(theta1, 0.0f);
-    }
 
-    if (d <= std::abs(L1 - L2) + 10.0f) {
-        float theta1 = std::atan2(my, mx);
-        return std::make_pair(theta1, 0.0f);
-    }
-
-    float cosTheta2 = (d2 - L1*L1 - L2*L2) / (2 * L1 * L2);
-    cosTheta2 = std::max(-1.0f, std::min(1.0f, cosTheta2));
-    float theta2 = std::acos(cosTheta2);
-
-    float alpha = std::atan2(my, mx);
-    float beta = std::atan2(L2 * std::sin(theta2), L1 + L2 * std::cos(theta2));
-    float theta1 = alpha - beta;
-
-    return std::make_pair(theta1, theta2);
-}

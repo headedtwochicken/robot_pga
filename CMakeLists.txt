@@ -31,8 +31,6 @@ add_executable(robot_pga main.cpp
         include/game2/shape2.hpp
         src/game2/traceG2.cpp
         include/game2/traceG2.hpp
-        src/math_tests.cpp
-        include/math_tests.hpp
         src/game3/PingPongGame.cpp
         include/game3/PingPongGame.hpp
         src/game3/PingPongGameView.cpp

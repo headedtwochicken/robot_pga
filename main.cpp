@@ -2,7 +2,6 @@
 #include "include/RobotArm.hpp"
 #include "include/game1/CatchGame1.hpp"
 #include "include/game2/traceG2.hpp"
-#include "include/math_tests.hpp"
 #include "include/game3/PingPongGame.hpp"
 
 enum AppMode { FK_MODE, IK_MODE, PHYSICS_MODE, COLLISION_MODE, GAME_LOBBY, MINI_GAME_CATCH, MINI_GAME_TRACE, MINI_GAME_PINGPONG };
@@ -105,7 +104,6 @@ int main() {
 
             if (event->is<sf::Event::KeyPressed>()) {
                 auto keyCode = event->getIf<sf::Event::KeyPressed>()->code;
-                if (keyCode == sf::Keyboard::Key::T) runMathTests();
                 if (keyCode == sf::Keyboard::Key::I) {
                     auto printResult = [](const GameResult& res, const std::string& name) {
                         std::visit([&name]<typename T0>(T0&& arg) {

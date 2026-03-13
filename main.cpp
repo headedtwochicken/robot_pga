@@ -141,7 +141,7 @@ int main() {
             if (btnGames.isClicked(mousePos, mouseClicked)){ currentMode = GAME_LOBBY; }
             bool isMouseInSafeZone = (static_cast<float>(mousePos.x) < panelX);
 
-            float dx = 0.0f, dy = 0.0f;
+            float dx = 0.0f, dy = 0.0f; // движение базы работает во всех режимах песочницы
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left))  dx = -2.0f;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right)) dx = 2.0f;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Up))    dy = -2.0f;
@@ -202,7 +202,7 @@ int main() {
             pingPongGame.draw(window);
             btnMenu.draw(window);
         }
-        else {
+        else { //прямоугольник пола
             if (currentMode == COLLISION_MODE) {
                 sf::RectangleShape floorShape(sf::Vector2f(1120.0f, 300.0f));
                 floorShape.setPosition({0.0f, 400.0f});
@@ -214,7 +214,7 @@ int main() {
             if (currentMode == IK_MODE) window.draw(targetPoint);
 
             if (fontLoaded) {
-                std::string hints = "Press T to run Unit Tests | Press I for Stats\n";
+                std::string hints = "Press I for Stats\n";
                 if (currentMode == FK_MODE) hints += "Mode 1 [FK]: Control joints with W/S, A/D";
                 else if (currentMode == IK_MODE) hints += "Mode 2 [IK]: Arm follows mouse cursor";
                 else if (currentMode == PHYSICS_MODE) hints += "Mode 3 [Physics]: Free fall | Hold LClick to grab";

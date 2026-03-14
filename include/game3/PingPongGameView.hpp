@@ -10,7 +10,7 @@
 #include <variant>
 #include <vector>
 
-struct PongVec2 {
+struct PongVec2 { //осбственный вектор
     float x = 0.0f;
     float y = 0.0f;
 
@@ -31,18 +31,18 @@ struct GameOverState {
     int finalScore = 0;
 };
 
-using ScreenState = std::variant<WaitingStartState, PlayingState, GameOverState>;
+using ScreenState = std::variant<WaitingStartState, PlayingState, GameOverState>; //3 состояния экрана
 
-class PixelBitmapFont final {
+class PixelBitmapFont final {//шрифт который рисует пиксилями
 public:
-    [[nodiscard]] float textWidth(const std::string& text, float pixelSize) const {
+    [[nodiscard]] float textWidth(const std::string& text, float pixelSize) const {//считает ширину текста
         if (text.empty()) {
             return 0.0f;
         }
         return pixelSize * (static_cast<float>(text.size()) * glyphAdvance_ - 1.0f);
     }
 
-    void drawText(sf::RenderTarget& target,
+    void drawText(sf::RenderTarget& target,//рисует текст слева         glyph-шаблоны букв ми цифр как наборы 0-пустой 1-пиксель надо рисовать
                   const std::string& text,
                   float x,
                   float y,
@@ -69,7 +69,7 @@ public:
         }
     }
 
-    void drawTextCentered(sf::RenderTarget& target,
+    void drawTextCentered(sf::RenderTarget& target, //рисует текст по центру
                           const std::string& text,
                           float centerX,
                           float y,
@@ -78,7 +78,7 @@ public:
         drawText(target, text, centerX - textWidth(text, pixelSize) * 0.5f, y, pixelSize, color);
     }
 
-    static void drawPixelSmiley(sf::RenderTarget& target,
+    static void drawPixelSmiley(sf::RenderTarget& target, //рисует пиксельный смайлик
                          float x,
                          float y,
                          float pixelSize,
@@ -239,7 +239,7 @@ private:
     std::shared_ptr<PixelBitmapFont> font_;
 };
 
-struct PongRenderSnapshot {
+struct PongRenderSnapshot { //связка логики и view
     float playW = 0.0f;
     float hudW = 0.0f;
     float windowH = 0.0f;
@@ -338,7 +338,7 @@ public:
         s.font->drawText(window, "MOVE",  labelX, infoY0 + infoStep * 0.0f, infoSize, sf::Color(120, 185, 255));
         s.font->drawText(window, "MOUSE", valueX, infoY0 + infoStep * 0.0f, infoSize, sf::Color(230, 240, 255));
         s.font->drawText(window, "TILT",  labelX, infoY0 + infoStep * 1.0f, infoSize, sf::Color(120, 185, 255));
-        s.font->drawText(window, "Q / E", valueX, infoY0 + infoStep * 1.0f, infoSize, sf::Color(230, 240, 255));
+        // s.font->drawText(window, "Q / E", valueX, infoY0 + infoStep * 1.0f, infoSize, sf::Color(230, 240, 255));
         s.font->drawText(window, "START", labelX, infoY0 + infoStep * 2.0f, infoSize, sf::Color(120, 185, 255));
         s.font->drawText(window, "SPACE", valueX, infoY0 + infoStep * 2.0f, infoSize, sf::Color(230, 240, 255));
         s.font->drawText(window, "RESET", labelX, infoY0 + infoStep * 3.0f, infoSize, sf::Color(120, 185, 255));
@@ -425,7 +425,7 @@ public:
     }
 
 private:
-    static void drawOverlay(sf::RenderWindow& window, const PongRenderSnapshot& s) {
+    static void drawOverlay(sf::RenderWindow& window, const PongRenderSnapshot& s) {// рисует поверх поля игры, отдельно потому что отдельная логика рисования использует std::visit потому что зависит от состояния экрана
         std::visit([&]<typename T>(const T& state) {
             if constexpr (std::is_same_v<T, PlayingState>) {
             } else if constexpr (std::is_same_v<T, WaitingStartState>) {
@@ -453,7 +453,7 @@ private:
                 s.font->drawTextCentered(window, "PRESS SPACE", s.playW * 0.5f, s.windowH * 0.48f - 4.0f, 4.3f, sf::Color(150, 210, 255));
                 s.font->drawTextCentered(window, "TO START", s.playW * 0.5f, s.windowH * 0.48f + 38.0f, 3.6f, sf::Color(200, 230, 255));
                 s.font->drawTextCentered(window, "MOUSE MOVE", s.playW * 0.5f, s.windowH * 0.48f + 92.0f, 2.8f, sf::Color(170, 215, 255));
-                s.font->drawTextCentered(window, "Q / E TILT", s.playW * 0.5f, s.windowH * 0.48f + 118.0f, 2.8f, sf::Color(170, 215, 255));
+                // s.font->drawTextCentered(window, "Q / E TILT", s.playW * 0.5f, s.windowH * 0.48f + 118.0f, 2.8f, sf::Color(170, 215, 255));
             } else if constexpr (std::is_same_v<T, GameOverState>) {
                 sf::RectangleShape overlay({s.playW, s.windowH});
                 overlay.setFillColor(sf::Color(0, 0, 0, 138));

@@ -13,8 +13,3 @@ The project includes three interactive mini-games to demonstrate the math in act
 * **Graphics:** SFML 3.0.2
 * **Testing:** Google Test
 * **Build System:** CMake
-
-## 👥 Team
-* **Polina:** Core Engine, Robot Arm Kinematics, TraceGame logic
-* **Kira:** Object-Oriented Design (Shapes), CatchGame logic
-* **Olya:** Math Core (PGA2D), Ping-Pong game, Unit Testing
